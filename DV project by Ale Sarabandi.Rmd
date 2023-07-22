@@ -1,0 +1,363 @@
+---
+title: "DV project final"
+author: "Ale Sarabandi"
+date: "2023-01-10"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r }
+knitr::opts_chunk$set(
+    message = FALSE,
+    warning = FALSE,
+    cache = TRUE,
+    tidy = FALSE,
+    fig.width = 7,
+    fig.height = 7)
+Netflix <- read.csv("Netflix.csv")
+world_cup <- read.csv("world_cup.csv")
+super <- read.csv("super.csv",stringsAsFactors = TRUE)
+GameOFT <- read.csv2("GameOFT.csv")
+
+```
+
+```{r, warning=FALSE}
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(readr)
+library(igraph)
+library(igraphdata)
+library(sand)
+library(geomnet)
+library(ggnetwork)
+library(lubridate)
+library(plot3D)
+library(plotly)
+library(MASS)
+library(hrbrthemes)
+library(waffle)
+library(ggthemes) 
+library(magrittr)
+library(hrbrthemes)
+library(rstudioapi)
+library(grDevices)
+library(extrafont)
+library(cartogram)
+library(maptools)
+library(sp)
+library(tmap)
+library(broom)        
+library(tweenr)       
+library(viridis) 
+library(rgdal)
+library(maps)
+library(hrbrthemes)
+library(GGally)
+library(FactoMineR)
+library(factoextra)
+library(quanteda)
+library(quanteda.textmodels)
+library(quanteda.textplots)
+library(quanteda.textstats)
+library(readtext)
+library(devtools)
+library(textplot)
+library(wordcloud)
+library(RColorBrewer)
+library(wordcloud2)
+library(tm)
+library(stringr)
+library(qdapRegex)
+library(rtweet)
+library(SnowballC)
+library(RColorBrewer)
+library(treemap)
+library(tidyverse)
+library(igraph)
+library(igraphdata)
+library(sand)
+library(geomnet)
+library(ggnetwork)
+library(GGally)
+library(geomnet)
+library(ggnetwork)
+library(statnet)
+library(igraph)
+library(RColorBrewer)
+library(visNetwork)
+library(networkD3)
+library(ggcorrplot)
+library(visNetwork)
+library(networkD3)
+```
+
+*First of all I need to be clear about something, the comments that I put here in the codes is just the summery, I am gonna describe all the graph in the finest way I can on the exam day.*
+
+# **NETFLIX**
+
+![](https://www.giuseppecaprotti.it/2019/wp-content/uploads/Netflix-Logo.png)
+
+This data set contains information on all of the movies and TV shows available on Netflix as of May 2022. In addition to basic information such as title, release year, and run time, the data set includes data on the cast and crew, IMDB score and number of votes, genres, production companies, and more. With this data, you can build models to find the best movies and TV shows on Netflix according to your own criteria, FYI IMDB is based on users feedback despite others website like Rotten tomato.
+
+"*Note for prof", as you said I made my bar chart more understandable, so i made a red boarder around the bar so you can distinguish each part and also i set a percentage on y-axis in this percentage stacked bar chart you can see the percentage of each genre correspond to the countries, on x-axis you have the countries and on y-axis you have the percentage which as you can see US got variety of genre, but countries like France and Germany only got drama genre in the data set, the reason could be that the NETFLIX is american broadcasting channel.Also among all the genre, drama got the highest proportion. I choose this plot to give you a quick info about the proportion of each genre done by different genre.*
+
+```{r}
+ggplot(Netflix,aes(x=MAIN_PRODUCTION, fill=MAIN_GENRE, colour="red")) + #use the data and specify the x axes
+ geom_bar(position = "fill") + # draw a percentage stacked barchart
+  ####  now i will do some calculation
+ylab("Percentage") + # i labled the y-axis as percentage 
+ scale_y_continuous(breaks=c(0,0.25, 0.5, 0.75,1),
+labels=c("0%","25%","50%","75%","100%"))  # and I want to see percentage
+```
+
+For better understanding you can see this donuts chart with the exact percentage of each country production, as I told you State got a major part of the data so I made a boxplot for the american movies which I compared movies score, so as you can see the y-axis is dedicated to scores and x-axis is for the country which is USA.
+
+```{r}
+Netflix_freq <- Netflix %>%
+group_by(MAIN_PRODUCTION) %>% summarize(Abs_freq=n()) %>% mutate(Rel_freq=round(Abs_freq/sum(Abs_freq),digits=4),Perc_freq=Rel_freq*100)
+Netflix_freq <- Netflix_freq %>%
+  mutate(Lab_text=paste0(Perc_freq,"%"))
+Netflix_freq
+Netflix_freq %>%
+ggplot(aes(x=1, y=Perc_freq,fill=as.factor(MAIN_PRODUCTION))) + #main production is transformed into a categorical variable
+geom_bar(stat="identity") + # draw a stacked percentage barchart
+geom_text(aes(label = Lab_text),position = position_stack(vjust = 0.5)) +
+xlim(c(-0.5,1.5))+ coord_polar(theta="y") + ##the trick for doing a hole in the pie (i.e. how to make a donuts in ggplot) 
+  
+labs(fill = "# COUNTRIES") + #for relevent lable which here is countries
+ggtitle("Donut chart from Netflix dataset")+
+theme_void()
+usnetflix <- Netflix %>% filter((MAIN_PRODUCTION=="US")) %>% dplyr::select(where(is.double))
+ggplot(usnetflix, 
+        aes(x="USA",y=SCORE,fill="black"
+            ))+ 
+   geom_boxplot()+ #doing boxplot through ggplot
+theme_bw() ## for seeing only the pie
+```
+
+Here we got 3D histogram, which I showed you the score of a movie(x-axis) and its release year(y-axis) and their frequency on z-axis.I know, not so informative, but \~I think you cant expect that much from this kinda plot, cause even the one that we got in the our Lab slides is not that informative.
+
+```{r, warning=FALSE}
+
+ # for 3d histograms and density plots we need some packages:
+ remotes::install_github("kassambara/graph3d")
+ library(graph3d)
+ dist3d(x=Netflix$SCORE,y=Netflix$RELEASE_YEAR,break.func = "Sturges",zlim=c
+ (0,30)) #indicating z-axis interval
+ 
+
+```
+
+# **#SUPERMARKET**
+
+![line_plot](https://media.vanityfair.com/photos/581234b0258b1c173559e194/master/pass/queen-elizabeth-supermarket.jpg)
+
+*Now we gotta work on another data set, so called "super", The context is the growth of supermarkets in most populated cities are increasing and market competitions are also high. The data set is one of the historical sales of supermarket company which has recorded in 3 different branches for 3 months data. Just a quick info: Attribute information*
+
+*Invoice id: Computer generated sales slip invoice identification number*
+
+*Branch: Branch of super center (3 branches are available identified by A, B and C).*
+
+*City: Location of super centers*
+
+*Customer type: Type of customers, recorded by Members for customers using member card and Normal for without member card.*
+
+*Gender: Gender type of customer*
+
+*Product line: General item categorization groups - Electronic accessories, Fashion accessories, Food and beverages, Health and beauty, Home and lifestyle, Sports and travel*
+
+*Unit price: Price of each product in \$*
+
+*Quantity: Number of products purchased by customer*
+
+*Tax: 5% tax fee for customer buying*
+
+*Total: Total price including tax*
+
+*Date: Date of purchase (Record available from January 2019 to March 2019)*
+
+*Time: Purchase time (10am to 9pm)*
+
+*Payment: Payment used by customer for purchase (3 methods are available -- Cash, Credit card and Ewallet)*
+
+*COGS: Cost of goods sold*
+
+*Gross margin percentage: Gross margin percentage*
+
+*Gross income: Gross income*
+
+*Rating: Customer stratification rating on their overall shopping experience (On a scale of 1 to 10)*
+
+In the 2D histogram below you can see the unit price of each purchase (y-axis), and gross income (y-axis), the shade of each hex is correspond to the frequency.
+
+```{r}
+ super %>% ggplot(aes(x=gross.income,y=Unit.price))+ #indicating y and x axis
+   geom_hex(bins=15, color="black")+  # I set the maximum bin in hex shape is 15
+   labs(title="WC data", subtitle="2D histplot")
+```
+
+The customers of branch B are slightly less satisfied than those of branches A and C, with a median close to 7 in all three branches. the second graph shows the distribution of the ratings per branch The second is a box plot representing the statistical summary of the branch The third is a box plot representing the ratings per product line by branch
+
+```{r}
+plot(super$Branch, super$Rating, 
+     col = heat.colors(length(levels(super$Branch))), #what variables I have to take
+     main = "Satisfaction distribution by branch", #the title
+     las = 1) #make horizontal
+
+ggplot(super) +
+    geom_density(mapping=aes(x=Rating, fill=Branch), alpha=.3) #transparency
+
+```
+
+*Here we have multiple variable histogram for the total amount of purchase for the each cities.*
+
+```{r, warning=FALSE}
+ggplot(super,
+        aes(x=Total, fill=City)) + # the histogram has one variable
+   geom_histogram(aes(y=..density..),position="identity",# this is the right way! Plot densities not counts
+     alpha=0.3, color="grey30")+
+   facet_grid(~ City) #faceting by rows and one variable
+
+```
+
+*Here you have the time series of the total amount of purchase from Jan of 2019.*
+
+```{r}
+#first lets fix the date, month,day,year
+data <- super %>%
+  mutate (Date=as.Date(Date,"%m/%d/%Y"),
+          
+          Total=as.numeric(Total)
+          ) %>%
+  drop_na() #Drop rows containing missing values
+data %>% dplyr::select(Date, Total) %>%
+   group_by(Date) %>%
+   summarize(Tot_pow=sum(Total)) %>%
+   ggplot(aes(x=Date,y=Tot_pow))+
+   geom_line()+ 
+   labs(title = "Total amount of purchase from jan till end of march ")
+```
+
+Now you can see the customer frequency during Feb, Jan, Mar in three different branches.
+
+```{r}
+sup_filter <- na.omit(super)
+sup_filter$date2 <- as.factor(sup_filter$Date)
+sup_filter$date2 <- as.Date(sup_filter$date2, format = "%m/%d/%y") #set the format for the date ,month.day.year
+sup_filter$month <- format(sup_filter$date2,'%B') #finding the month (name)
+sup_filter %>%
+  group_by(month, Branch) %>%
+  arrange(month, Branch) %>% #arrange each branch with month
+  summarize(count = n()) %>%
+  ggplot(aes(x = month, y = count, fill = Branch))+
+  geom_bar(stat = "identity", position = "dodge")+ #do this to have all three branches barchart attach to each other
+  labs(x = 'Month', y ='Customer Frequency', title = "Total Customers by Branch and Month" )+
+  scale_y_continuous(expand = c(0,0), breaks= c(0,20,40,60,80,100,120,140)) # setting the braks of y-axis
+
+```
+
+*Note for prof. ,last time i made a mistake to put discrete variable in my violin and bag plot, now you can see that the both variable is continuous.*
+
+**Violin plot**: The median spending value of female consumers is slightly greater than the median spending value of male consumers, as can be seen. Female consumers' IQR ratings are also higher than men.
+
+**bag plot**: In this bag plot we compare tax paid by customer with the total spending, the plus in the inner bag is showing the median,the inner shape with grey shade is called bag which contains 50% of point with highest depth,the outer shape is called lop which represent all area covered by points.
+
+```{r, warning=FALSE}
+ ggplot(super, aes(y=Total, x=Gender,fill=Gender)) +
+   geom_violin(alpha=0.4, color="grey30")+ #set the transparency level  
+geom_boxplot(alpha=0.7,width=0.4)+labs(title="Customer spending \"Gender",
+                             fill="Gender", #fill the violin shape with gender
+                             caption = "Supermarket Sales Dataset")
+
+ # YOU NEED TO SOURCE THESE TWO CODES
+setwd("~/Downloads/")
+ source("000_geom_bag.r")
+ source("001_bag_functions.r")
+
+
+ super %>% ggplot(aes(x=Unit.price,y=Tax.5.))+
+       geom_bag(color="red") +
+       theme_bw() + #A theme with white background and black grid lines.
+   labs(title="Supermarket data", subtitle="Bagplot")
+```
+
+# **#WORLDCUP2022**
+
+The data set contains all the matches, updated daily, of the Qatar Fifa World Cup 2022. Along with the scores and the football teams several statistics for each match were reported; for instance, assists, possession, crosses, number of red and yellow cards, passes, fouls, attempts, switches of play, offside, and the number of times a certain are of the pitch has been crossed.
+
+![](https://corporate.tubitv.com/wp-content/uploads/2022/09/FIFA-channel-landscape.jpeg)
+
+Here you have an interactive 3D plot which is x-axis showing the number of goal and y a-axis is the assists (FYI assist is the pass that leading to score a goal), the plot is interactive so each point is represent a team so if you choose one of them you can have information about that team.
+
+```{r, warning=FALSE}
+plot_ly(world_cup, x = ~number.of.goals, y = ~assists, z = ~passes,color =~team, size=1.5 )
+# the plot is 3d so we set 3 variable; x,y,z and we gave a color to each team
+```
+
+# **GAME OF THRONE**
+
+![](https://m.media-amazon.com/images/M/MV5BYTRiNDQwYzAtMzVlZS00NTI5LWJjYjUtMzkwNTUzMWMxZTllXkEyXkFqcGdeQXVyNDIzMzcwNjc@._V1_.jpg)
+
+We are almost done, the last data set is about GOT,In this Data set, we have various information about each Episode/Season of Game of Thrones. The key features of this Data set are - Season, No. of Episodes (Season), No. of Episodes (Overall), Title of the Episode, Running Time (Minutes), Directed by, Written by, Original Air Date, U.S. Viewers (Millions), Music by, Cinematography by, Editing by, IMDb Rating, Rotten Tomatoes Rating (Percentage), Meta critic Ratings, Season Ordered, Filming Duration, Novel(s) Adapted, Synopsis of each Episode.
+
+*Note for prof. , you told me that you didnt catch what is this tree map for, so here i counted episodes that directed by different director(FYI big TV series like GOT,Friends... had more than one director) and as i said David Nutter directed more episodes than other In the tree map below each square is for a directors of GOT with their name on it, and the size of each square represent the episodes that been directed by each director.*
+
+```{r}
+treed <- treemap(GameOFT,
+            index=c("Directed"),
+            vSize="No..of.Episode..Overall.",
+            type="index",
+            palette = "Set2",
+            align.labels=list(
+              c("center", "center"),
+              c("right", "bottom")
+            )
+)
+
+```
+
+![David Nutter](https://s.hdnux.com/photos/47/16/65/10284377/4/1200x0.jpg)
+
+From the plot below, you can see viewers of each season.as you may know the last two season was a disaster which you can clearly see the decrease in viewers for 7th season and 8th season.
+
+```{r}
+ggplot(GameOFT, aes(x = Season, y = viewers.estimated)) + #Season here is bunch of episode of a show
+    geom_point()+
+    labs(title = "Viewership in The US", y = "Viewers (million)")
+```
+
+(Alternative for summary of a paper)this is the word cloud of famous speech of Martin Luther King, which you can have an interactive version of word cloud done by wordclod2 package.
+
+```{r, warning=FALSE}
+# Read the text file from internet
+filePath <- "http://www.sthda.com/sthda/RDoc/example-files/martin-luther-king-i-have-a-dream-speech.txt"
+text <- readLines(filePath)
+docs <- Corpus(VectorSource(text))
+toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
+#lets to remove unnecessary white space
+docs <- tm_map(docs, toSpace, "/")
+docs <- tm_map(docs, toSpace, "@")
+docs <- tm_map(docs, toSpace, "\\|")
+
+docs <- tm_map(docs, content_transformer(tolower))
+docs <- tm_map(docs, removeNumbers)
+docs <- tm_map(docs, removeWords, stopwords("english")) #removing english stopword like "the", "a"...
+docs <- tm_map(docs, removeWords, c("blabla1", "blabla2")) ## specify your stopwords as a character vector
+
+docs <- tm_map(docs, removePunctuation)
+## Eliminate extra white spaces
+#Document matrix is a table containing the frequency of the words. Column names are words and row names are documents. The function TermDocumentMatrix() from text mining package can be used as follow :
+docs <- tm_map(docs, stripWhitespace)
+
+dtm <- TermDocumentMatrix(docs)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing=TRUE)
+finaldata<- data.frame(word = names(v),freq=v)
+set.seed(1234)
+wordcloud(words = finaldata$word, freq = finaldata$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+wordcloud2(finaldata, size = 0.8,  shape="star", backgroundColor = 'black', fontFamily="Loma")
+```
