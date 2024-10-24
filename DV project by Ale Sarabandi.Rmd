@@ -1,3 +1,5 @@
+vim: syntax=r
+
 ---
 title: "DV project final"
 author: "Ale Sarabandi"
